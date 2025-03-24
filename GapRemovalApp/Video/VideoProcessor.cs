@@ -14,11 +14,11 @@ namespace GapRemovalApp.Video
     {
         private const int MinSilenceLengthMs = 700;
 
-        public static List<(TimeSpan start, TimeSpan end)> OnlyDetectSilence(string videoPath, double silenceThresholdDb)
+    
+        public static async Task<List<(TimeSpan start, TimeSpan end)>> OnlyDetectSilence(string videoPath, double silenceThresholdDb)
         {
             var silenceList = new List<(TimeSpan start, TimeSpan end)>();
 
-            // Configura o processo do FFmpeg
             var process = new Process();
             process.StartInfo.FileName = "ffmpeg";
             process.StartInfo.Arguments = $"-i \"{videoPath}\" -af silencedetect=noise={silenceThresholdDb}dB:d=0.7 -f null -";
@@ -26,15 +26,19 @@ namespace GapRemovalApp.Video
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.CreateNoWindow = true;
 
-            // Regex para capturar os logs de silêncio
             var silenceStartRegex = new Regex(@"silence_start: (?<start>[0-9.]+)", RegexOptions.Compiled);
             var silenceEndRegex = new Regex(@"silence_end: (?<end>[0-9.]+)", RegexOptions.Compiled);
 
             TimeSpan? currentSilenceStart = null;
+            var tcs = new TaskCompletionSource();
 
             process.ErrorDataReceived += (sender, e) =>
             {
-                if (e.Data == null) return;
+                if (e.Data == null)
+                {
+                    tcs.TrySetResult(); // fim da leitura
+                    return;
+                }
 
                 var startMatch = silenceStartRegex.Match(e.Data);
                 if (startMatch.Success)
@@ -53,10 +57,11 @@ namespace GapRemovalApp.Video
 
             process.Start();
             process.BeginErrorReadLine();
-            process.WaitForExit();
 
+            await Task.WhenAll(process.WaitForExitAsync(), tcs.Task);
             return silenceList;
         }
+
 
         public static async Task<List<(double start, double end)>> DetectSilence(string videoPath, int silenceThreshold)
         {

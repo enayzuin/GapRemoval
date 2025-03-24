@@ -74,7 +74,7 @@ namespace GapRemovalApp
 
             try
             {
-                silentParts = VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
+                silentParts = await VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
                 LoadSilentParts();
             }
             catch (Exception ex)
@@ -94,7 +94,7 @@ namespace GapRemovalApp
 
             try
             {
-                silentParts = VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
+                silentParts = await VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
                 var parts = await VideoProcessor.CutVideo(videoPath, silentParts);
                 await VideoProcessor.ConcatenateVideos(videoPath, parts);
 

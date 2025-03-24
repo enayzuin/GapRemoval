@@ -9,7 +9,6 @@ namespace GapRemovalApp
     public partial class MainWindow : Window
     {
         private string videoPath = null!;
-        private List<(double start, double end)> silentParts = null!;
         private int silenceThreshold = -40;
 
         public MainWindow()
@@ -44,7 +43,7 @@ namespace GapRemovalApp
 
             try
             {
-                var silentParts = VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
+                var silentParts = await VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
 
                 
 
