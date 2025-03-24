@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Utils\NovaPasta\**" />
+    <Compile Remove="Video\NovaPasta\**" />
+    <EmbeddedResource Remove="Utils\NovaPasta\**" />
+    <EmbeddedResource Remove="Video\NovaPasta\**" />
+    <None Remove="Utils\NovaPasta\**" />
+    <None Remove="Video\NovaPasta\**" />
+    <Page Remove="Utils\NovaPasta\**" />
+    <Page Remove="Video\NovaPasta\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="Xabe.FFmpeg" Version="6.0.1" />
+  </ItemGroup>
+
+</Project>

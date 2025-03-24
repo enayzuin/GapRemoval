@@ -1,0 +1,27 @@
+﻿<Window x:Class="GapRemovalApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GapRemoval" Height="250" Width="700"
+        Background="#1E1E1E" Foreground="White" FontFamily="Segoe UI">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="📂 Selecione um vídeo:" FontSize="16" Margin="0,0,0,10"/>
+
+        <Button x:Name="SelectButton" Content="Selecionar Vídeo"
+                Click="SelectButton_Click"
+                Grid.Row="1" Height="30" Background="#333" />
+
+        <TextBlock x:Name="VideoLabel" Text="Vídeo: (nenhum selecionado)"
+                   Grid.Row="2" Margin="0,20,0,10" FontSize="14"/>
+
+        <Button x:Name="ProcessButton" Content="Abrir preview"
+                Click="ProcessButton_Click"
+                Grid.Row="3" Height="30" Background="#007ACC" />
+    </Grid>
+</Window>
