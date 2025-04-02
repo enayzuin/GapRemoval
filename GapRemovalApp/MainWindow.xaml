@@ -1,27 +1,44 @@
 ﻿<Window x:Class="GapRemovalApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="GapRemoval" Height="250" Width="700"
+        xmlns:local="clr-namespace:GapRemovalApp"
+        Title="MainWindow" Height="635" Width="800"
         Background="#1E1E1E" Foreground="White" FontFamily="Segoe UI">
     <Grid Margin="20">
+
+
+
+        <!-- Painel que vai ajustar o layout -->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="40"/>
+            <!-- Sensibilidade -->
+            <RowDefinition Height="*"/>
+            <!-- VideoPlayer e Waveform -->
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="40"/>
+            <!-- Botão Abrir Vídeo -->
         </Grid.RowDefinitions>
 
-        <TextBlock Text="📂 Selecione um vídeo:" FontSize="16" Margin="0,0,0,10"/>
+        <!-- Controle de sensibilidade -->
+        <local:AudioSensitivityControl x:Name="SensitivityControl" Grid.Row="0" Margin="336,5,124,15"/>
 
-        <Button x:Name="SelectButton" Content="Selecionar Vídeo"
-                Click="SelectButton_Click"
-                Grid.Row="1" Height="30" Background="#333" />
+        <!-- Painel do VideoPlayer e Waveform, visíveis quando o vídeo for carregado -->
+        <StackPanel x:Name="VideoPanel" Grid.Row="1" HorizontalAlignment="Stretch" Visibility="Collapsed">
+            <local:VideoPlayer x:Name="VideoPlayerControl" Height="300" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            <local:WaveformControl x:Name="WaveformControl" Height="100" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+        </StackPanel>
 
-        <TextBlock x:Name="VideoLabel" Text="Vídeo: (nenhum selecionado)"
-                   Grid.Row="2" Margin="0,20,0,10" FontSize="14"/>
+        <!-- Botão para abrir o vídeo -->
+        <Button Content="Selecionar video" Click="OpenVideo_Click" Height="30" Width="200" HorizontalAlignment="Left" Margin="25,15,0,25" x:Name="OpenButton"/>
+        <Button Content="Exportar Vídeo" Click="ExportButton_Click"  Grid.Row="2" Height="30" Width="200" HorizontalAlignment="Left" Margin="260,20,0,20" x:Name="ExportButton"/>
 
-        <Button x:Name="ProcessButton" Content="Abrir preview"
-                Click="ProcessButton_Click"
-                Grid.Row="3" Height="30" Background="#007ACC" />
+
+        <!-- Overlay de Carregamento -->
+        <Grid x:Name="LoadingOverlay" Visibility="Collapsed"  Background="#80000000" Grid.RowSpan="3">
+            <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,223,0,0">
+                <TextBlock Text="Removendo gaps de silêncio..." Foreground="White" FontSize="20" Margin="0,20"/>
+                <ProgressBar IsIndeterminate="True" Width="200" Height="20"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

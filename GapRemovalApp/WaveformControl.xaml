@@ -1,0 +1,10 @@
+﻿<UserControl x:Class="GapRemovalApp.WaveformControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#1E1E1E">
+    <Grid>
+        <Canvas x:Name="WaveformCanvas" Background="#1E1E1E" MouseLeftButtonDown="WaveformCanvas_MouseLeftButtonDown" >
+            <Line x:Name="TimeCursor" Stroke="Red" StrokeThickness="2" Visibility="Collapsed"/>
+        </Canvas>
+    </Grid>
+</UserControl>

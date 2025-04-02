@@ -1,0 +1,11 @@
+﻿<UserControl x:Class="GapRemovalApp.VideoPlayer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="Auto" Height="Auto">
+    <Grid Background="Black">
+        <MediaElement x:Name="Player"
+                      LoadedBehavior="Manual"
+                      UnloadedBehavior="Manual"
+                      Stretch="Uniform" />
+    </Grid>
+</UserControl>

@@ -154,18 +154,13 @@ namespace GapRemovalApp.Video
         }
 
 
-        public static async Task ConcatenateVideos(string videoPath, List<string> parts)
+        public static async Task ConcatenateVideos(string outputPath, List<string> parts)
         {
             if (parts == null || parts.Count == 0)
             {
                 Console.WriteLine("❌ Nenhuma parte para concatenar.");
                 return;
             }
-
-            string outputPath = Path.Combine(
-                Path.GetDirectoryName(videoPath)!,
-                Path.GetFileNameWithoutExtension(videoPath) + "_sem_silencio.mp4"
-            );
 
             string listFilePath = Path.Combine(Path.GetTempPath(), $"concat_list_{Guid.NewGuid():N}.txt");
 
