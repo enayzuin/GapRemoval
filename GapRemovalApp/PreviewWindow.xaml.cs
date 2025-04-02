@@ -1,111 +1,120 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using GapRemovalApp.Video;
+using GapRemovalApp.Utils;
+using NAudio.Wave;
+using System.Windows.Shapes;
+using System.Windows.Media;
+using System.Windows.Controls;
 
 namespace GapRemovalApp
 {
     public partial class PreviewWindow : Window
     {
-        private string videoPath = null!;
-        private List<(TimeSpan start, TimeSpan end)> silentParts;
-        private int silenceThreshold = -40;
-        private DispatcherTimer sliderTimer = null!;
+        private readonly string videoPath;
+        private readonly string previewVideoPath;
+        private readonly string wavPath;
+        private DispatcherTimer? timer;
 
-        public PreviewWindow(string videoPath, List<(TimeSpan start, TimeSpan end)> silentParts)
+        public PreviewWindow(string path, string previewPath, string wavPath, List<(TimeSpan start, TimeSpan end)> silentParts)
         {
             InitializeComponent();
+            videoPath = path;
+            previewVideoPath = previewPath;
+            this.wavPath = wavPath;
+        }
 
-            this.videoPath = videoPath;
-            this.silentParts = silentParts;
-
-            if (silentParts == null || silentParts.Count == 0)
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Garante que o MediaElement esteja carregado visualmente antes de atribuir o Source
+            Dispatcher.BeginInvoke(async () =>
             {
-                MessageBox.Show("Nenhum trecho silencioso detectado. Ajuste a sensibilidade de silêncio.", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Player.MediaOpened += (_, _) =>
+                {
+                    var duration = Player.NaturalDuration.TimeSpan;
+
+                    ProgressSlider.Minimum = 0;
+                    ProgressSlider.Maximum = duration.TotalSeconds;
+                    TotalTimeText.Text = FormatTime(duration);
+
+                    timer = new DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(200)
+                    };
+                    timer.Tick += Timer_Tick;
+                    timer.Start();
+
+                    RenderWaveform(wavPath);
+                    Player.Play();
+                };
+
+                Player.MediaFailed += (_, err) =>
+                {
+                    MessageBox.Show("❌ MediaFailed: " + err.ErrorException?.Message);
+                };
+
+                Player.Source = new Uri(previewVideoPath);
+            }, DispatcherPriority.Loaded);
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            if (Player.NaturalDuration.HasTimeSpan)
+            {
+                ProgressSlider.Value = Player.Position.TotalSeconds;
+                CurrentTimeText.Text = FormatTime(Player.Position);
+            }
+        }
+
+        private string FormatTime(TimeSpan time)
+        {
+            return time.Hours > 0 ? time.ToString(@"hh\:mm\:ss") : time.ToString(@"mm\:ss");
+        }
+
+        private void RenderWaveform(string wavPath)
+        {
+            WaveformCanvas.Children.Clear();
+
+            using var reader = new AudioFileReader(wavPath);
+            int resolution = 500;
+            int sampleCount = (int)(reader.Length / sizeof(float));
+            float[] buffer = new float[sampleCount];
+            reader.Read(buffer, 0, buffer.Length);
+
+            WaveformCanvas.UpdateLayout();
+
+            double width = WaveformCanvas.ActualWidth;
+            double height = WaveformCanvas.ActualHeight;
+
+            if (width == 0 || height == 0)
+            {
+                WaveformCanvas.LayoutUpdated += (_, _) => RenderWaveform(wavPath);
                 return;
             }
 
-            VideoLabel.Text = $"Vídeo: {videoPath}";
+            int step = Math.Max(1, buffer.Length / resolution);
+            double barWidth = width / resolution;
 
-            sliderTimer = new DispatcherTimer
+            for (int i = 0; i < resolution; i++)
             {
-                Interval = TimeSpan.FromMilliseconds(500)
-            };
-            sliderTimer.Tick += SliderTimer_Tick;
+                int index = i * step;
+                if (index >= buffer.Length) break;
 
-            SensitivitySlider.Value = silenceThreshold;
-            SensitivityValueText.Text = silenceThreshold.ToString("F2", CultureInfo.InvariantCulture);
+                float amplitude = Math.Abs(buffer[index]);
+                double barHeight = amplitude * height * 2;
 
-            LoadSilentParts();
-        }
+                var rect = new Rectangle
+                {
+                    Width = barWidth - 1,
+                    Height = barHeight,
+                    Fill = Brushes.LightGreen
+                };
 
-        private void LoadSilentParts()
-        {
-            SilentPartsList.Items.Clear();
-
-            foreach (var (start, end) in silentParts)
-            {
-                string formattedStart = start.ToString(@"hh\:mm\:ss");
-                string formattedEnd = end.ToString(@"hh\:mm\:ss");
-                SilentPartsList.Items.Add($"{formattedStart} - {formattedEnd}");
-            }
-        }
-
-        private void SensitivitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (SensitivityValueText != null)
-            {
-                silenceThreshold = (int)e.NewValue;
-                SensitivityValueText.Text = silenceThreshold.ToString("F2", CultureInfo.InvariantCulture);
-            }
-            sliderTimer?.Stop();
-            sliderTimer?.Start();
-
-        }
-
-        private async void SliderTimer_Tick(object? sender, EventArgs e)
-        {
-            sliderTimer.Stop();
-            ProgressBar.Visibility = Visibility.Visible;
-
-            try
-            {
-                silentParts = await VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
-                LoadSilentParts();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Erro ao recalcular os silêncios:\n{ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                ProgressBar.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private async void ProcessButton_Click(object sender, RoutedEventArgs e)
-        {
-            ProcessButton.IsEnabled = false;
-            ProcessButton.Content = "Processando...";
-
-            try
-            {
-                silentParts = await VideoProcessor.OnlyDetectSilence(videoPath, silenceThreshold);
-                var parts = await VideoProcessor.CutVideo(videoPath, silentParts);
-                await VideoProcessor.ConcatenateVideos(videoPath, parts);
-
-                MessageBox.Show("✅ Vídeo processado com sucesso!", "Sucesso", MessageBoxButton.OK, MessageBoxImage.Information);
-                Close();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Erro ao processar vídeo:\n{ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-                ProcessButton.IsEnabled = true;
-                ProcessButton.Content = "Exportar Vídeo";
+                Canvas.SetLeft(rect, i * barWidth);
+                Canvas.SetTop(rect, (height - barHeight) / 2);
+                WaveformCanvas.Children.Add(rect);
             }
         }
     }
