@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using Xabe.FFmpeg;
+using GapRemovalApp.Utils;
+using GapRemovalApp.Config;
+using MessageBox = System.Windows.MessageBox;
 
 namespace GapRemovalApp.Video
 {
@@ -14,182 +18,174 @@ namespace GapRemovalApp.Video
     {
         private const int MinSilenceLengthMs = 700;
 
-    
-        public static async Task<List<(TimeSpan start, TimeSpan end)>> OnlyDetectSilence(string videoPath, double silenceThresholdDb)
+        public static async Task<List<string>> CutVideo(string videoPath, List<(TimeSpan start, TimeSpan end)> silentParts, Action<double>? onProgress = null)
         {
-            var silenceList = new List<(TimeSpan start, TimeSpan end)>();
+            var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg");
+            FFmpeg.SetExecutablesPath(ffmpegPath);
 
-            var process = new Process();
-            process.StartInfo.FileName = "ffmpeg";
-            process.StartInfo.Arguments = $"-i \"{videoPath}\" -af silencedetect=noise={silenceThresholdDb}dB:d=0.7 -f null -";
-            process.StartInfo.UseShellExecute = false;
-            process.StartInfo.RedirectStandardError = true;
-            process.StartInfo.CreateNoWindow = true;
-
-            var silenceStartRegex = new Regex(@"silence_start: (?<start>[0-9.]+)", RegexOptions.Compiled);
-            var silenceEndRegex = new Regex(@"silence_end: (?<end>[0-9.]+)", RegexOptions.Compiled);
-
-            TimeSpan? currentSilenceStart = null;
-            var tcs = new TaskCompletionSource();
-
-            process.ErrorDataReceived += (sender, e) =>
-            {
-                if (e.Data == null)
-                {
-                    tcs.TrySetResult(); // fim da leitura
-                    return;
-                }
-
-                var startMatch = silenceStartRegex.Match(e.Data);
-                if (startMatch.Success)
-                {
-                    currentSilenceStart = TimeSpan.FromSeconds(double.Parse(startMatch.Groups["start"].Value, CultureInfo.InvariantCulture));
-                }
-
-                var endMatch = silenceEndRegex.Match(e.Data);
-                if (endMatch.Success && currentSilenceStart.HasValue)
-                {
-                    var end = TimeSpan.FromSeconds(double.Parse(endMatch.Groups["end"].Value, CultureInfo.InvariantCulture));
-                    silenceList.Add((currentSilenceStart.Value, end));
-                    currentSilenceStart = null;
-                }
-            };
-
-            process.Start();
-            process.BeginErrorReadLine();
-
-            await Task.WhenAll(process.WaitForExitAsync(), tcs.Task);
-            return silenceList;
-        }
-
-
-        public static async Task<List<(double start, double end)>> DetectSilence(string videoPath, int silenceThreshold)
-        {
-            var silentParts = new List<(double start, double end)>();
-
-            if (string.IsNullOrEmpty(videoPath) || !File.Exists(videoPath))
-                throw new ArgumentException("Caminho do vídeo inválido.");
-
-            Console.WriteLine($"[FFmpeg] Detectando silêncio no vídeo: {videoPath} com threshold: {silenceThreshold}dB");
-
-            string output = string.Empty;
-
-            var conversion = FFmpeg.Conversions.New()
-                .AddParameter($"-i {videoPath}")
-                .AddParameter($"-af silencedetect=n={silenceThreshold}dB:d=0.5")
-                .AddParameter("-f null")
-                .SetOutput("NUL"); // NUL no Windows, /dev/null no Linux/Mac
-
-            conversion.OnDataReceived += (s, args) =>
-            {
-                if (!string.IsNullOrEmpty(args.Data))
-                    output += args.Data + Environment.NewLine;
-            };
-
-            await conversion.Start();
-
-            var lines = output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-            double? silenceStart = null;
-
-            foreach (string line in lines)
-            {
-                if (line.Contains("silence_start"))
-                {
-                    var value = line.Split("silence_start:").LastOrDefault()?.Trim();
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double start))
-                        silenceStart = start;
-                }
-
-                if (line.Contains("silence_end") && silenceStart.HasValue)
-                {
-                    var value = line.Split("silence_end:").LastOrDefault()?.Split(' ').FirstOrDefault()?.Trim();
-                    if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double end))
-                    {
-                        double duration = (end - silenceStart.Value) * 1000;
-                        if (duration >= MinSilenceLengthMs)
-                            silentParts.Add((silenceStart.Value, end));
-
-                        silenceStart = null;
-                    }
-                }
-            }
-
-            Console.WriteLine($"[FFmpeg] Detecção concluída. {silentParts.Count} trechos silenciosos encontrados.");
-            return silentParts;
-        }
-
-        public static async Task<List<string>> CutVideo(string videoPath, List<(TimeSpan start, TimeSpan end)> silentParts)
-        {
             var parts = new List<string>();
+            var (width, height) = await GetVideoResolution(videoPath);
+
+            Logger.Info($"[Video Info] Resolução detectada: {width}x{height}");
+
+            double totalDurationToProcess = CalculateTotalDuration(silentParts);
+            double processedSoFar = 0.0;
             TimeSpan lastEnd = TimeSpan.Zero;
 
             foreach (var (start, end) in silentParts)
             {
                 if (start > lastEnd)
                 {
-                    string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp4");
+                    var segmentPath = await CutSegment(videoPath, lastEnd, start, width, totalDurationToProcess, processedSoFar, (value) =>
+                    {
+                        onProgress?.Invoke(value);
+                    });
 
-                    Console.WriteLine($"[FFmpeg] Cortando trecho de {lastEnd} até {start} → {tempFile}");
-
-                    var conversion = FFmpeg.Conversions.New()
-                        .AddParameter($"-ss {lastEnd}")
-                        .AddParameter($"-to {start}")
-                        .AddParameter($"-i \"{videoPath}\"")
-                        .AddParameter("-avoid_negative_ts make_zero")
-                        .AddParameter("-c:v libx264")
-                        .AddParameter("-preset slow")
-                        .AddParameter("-crf 16")
-                        .AddParameter("-c:a aac")
-                        .SetOutput(tempFile);
-
-                    await conversion.Start();
-                    parts.Add(tempFile);
+                    parts.Add(segmentPath);
+                    processedSoFar += (start - lastEnd).TotalSeconds;
                 }
 
                 lastEnd = end;
             }
 
-            Console.WriteLine($"[FFmpeg] {parts.Count} partes de vídeo cortadas com sucesso.");
+            Logger.Info($"[FFmpeg] {parts.Count} partes de vídeo cortadas com sucesso.");
             return parts;
+        }
+
+        private static async Task<(int width, int height)> GetVideoResolution(string videoPath)
+        {
+            var mediaInfo = await FFmpeg.GetMediaInfo(videoPath);
+            var videoStream = mediaInfo.VideoStreams.FirstOrDefault();
+            int width = videoStream?.Width ?? 1920;
+            int height = videoStream?.Height ?? 1080;
+            return (width, height);
+        }
+
+        private static double CalculateTotalDuration(List<(TimeSpan start, TimeSpan end)> silentParts)
+        {
+            double total = 0.0;
+            TimeSpan lastEnd = TimeSpan.Zero;
+
+            foreach (var (start, end) in silentParts)
+            {
+                if (start > lastEnd)
+                {
+                    total += (start - lastEnd).TotalSeconds;
+                }
+                lastEnd = end;
+            }
+
+            return total;
+        }
+
+        private static async Task<string> CutSegment(string videoPath, TimeSpan start, TimeSpan end, int width, double totalDuration, double processedSoFar, Action<double>? onProgress)
+        {
+            string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp4");
+
+            Logger.Info($"[FFmpeg] Cortando trecho de {start} até {end} → {tempFile}");
+
+            var config = LoadProcessingConfig();
+            var conversion = FFmpeg.Conversions.New()
+                .AddParameter($"-ss {start}")
+                .AddParameter($"-to {end}")
+                .AddParameter($"-i \"{videoPath}\"")
+                .AddParameter("-avoid_negative_ts make_zero")
+                .AddParameter("-pix_fmt yuv420p");
+
+            string encoder = config?.VideoEncoder ?? "libx264";
+
+            switch (encoder)
+            {
+                case "libx264":
+                    HardwareHelper.ApplyCpuSettings(conversion, config);
+                    break;
+
+                case "h264_nvenc":
+                case "hevc_nvenc":
+                    HardwareHelper.ApplyNvencSettings(conversion, config);
+                    break;
+
+                case "h264_qsv":
+                case "hevc_qsv":
+                    HardwareHelper.ApplyQsvSettings(conversion, config);
+                    break;
+
+                case "h264_amf":
+                case "hevc_amf":
+                    HardwareHelper.ApplyAmfSettings(conversion, config);
+                    break;
+
+                default:
+                    Logger.Warn($"Encoder desconhecido '{encoder}', aplicando fallback para CPU.");
+                    HardwareHelper.ApplyCpuSettings(conversion, config);
+                    break;
+            }
+
+            if (config?.TargetFps != null)
+                conversion.AddParameter($"-r {config.TargetFps}");
+
+            conversion.AddParameter("-c:a aac");
+            conversion.AddParameter($"-threads {config?.Threads ?? 0}");
+            conversion.SetOutput(tempFile);
+
+            TimeSpan clipDuration = end - start;
+
+            conversion.OnDataReceived += (sender, args) =>
+            {
+                Logger.Info($"[FFmpeg Output] {args.Data}");
+            };
+
+            conversion.OnProgress += (sender, args) =>
+            {
+                if (clipDuration.TotalSeconds > 0)
+                {
+                    double currentClipSeconds = args.Duration.TotalSeconds;
+                    double globalSeconds = processedSoFar + currentClipSeconds;
+                    double globalPercent = (globalSeconds / totalDuration) * 100.0;
+                    Logger.Debug($"[FFmpeg Progress] Global: {globalPercent:F1}%");
+                    onProgress?.Invoke(globalPercent);
+                }
+            };
+
+            await conversion.Start();
+            Logger.Info("Conversão concluída com sucesso.");
+
+            return tempFile;
         }
 
 
         public static async Task ConcatenateVideos(string outputPath, List<string> parts)
         {
+            var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg");
+            FFmpeg.SetExecutablesPath(ffmpegPath);
+
             if (parts == null || parts.Count == 0)
             {
-                Console.WriteLine("❌ Nenhuma parte para concatenar.");
+                Logger.Warn("Nenhuma parte para concatenar.");
                 return;
             }
 
             string listFilePath = Path.Combine(Path.GetTempPath(), $"concat_list_{Guid.NewGuid():N}.txt");
+            await File.WriteAllLinesAsync(listFilePath, parts.Select(p => $"file '{p.Replace("\\", "/")}'"));
 
-            using (var writer = new StreamWriter(listFilePath))
-            {
-                foreach (var part in parts)
-                {
-                    writer.WriteLine($"file '{part.Replace("\\", "/")}'");
-                }
-            }
-
-            Console.WriteLine($"[FFmpeg] Iniciando concatenação para: {outputPath}");
+            Logger.Info($"[FFmpeg] Iniciando concatenação para: {outputPath}");
 
             try
             {
                 var conversion = FFmpeg.Conversions.New()
                     .AddParameter("-f concat")
                     .AddParameter("-safe 0")
-                    .AddParameter($"-i {listFilePath}")
+                    .AddParameter($"-i \"{listFilePath}\"")
                     .AddParameter("-c copy")
                     .SetOutput(outputPath);
 
                 await conversion.Start();
 
-                Console.WriteLine($"✅ Vídeo final gerado em: {outputPath}");
+                Logger.Info($"✅ Vídeo final gerado em: {outputPath}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Erro ao concatenar: {ex.Message}");
+                Logger.Error($"❌ Erro ao concatenar: {ex.Message}");
             }
             finally
             {
@@ -201,5 +197,28 @@ namespace GapRemovalApp.Video
                 }
             }
         }
+
+        private static VideoProcessingConfig? LoadProcessingConfig()
+        {
+            try
+            {
+                string configPath = VideoProcessingConfig.GetConfigPath();
+                if (File.Exists(configPath))
+                {
+                    var json = File.ReadAllText(configPath);
+                    return JsonSerializer.Deserialize<VideoProcessingConfig>(json);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Falha ao carregar configuração: {ex.Message}");
+            }
+
+            return JsonSerializer.Deserialize<VideoProcessingConfig>("");
+        }
+
+
+
+
     }
 }

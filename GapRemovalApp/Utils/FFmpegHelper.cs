@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using Xabe.FFmpeg;
 
 namespace GapRemovalApp.Utils
 {
@@ -9,6 +10,8 @@ namespace GapRemovalApp.Utils
     {
         public static async Task<string> ConverterParaCompatibilidade(string inputPath)
         {
+            var ffmpegPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg"); // ou "bin/ffmpeg"
+            FFmpeg.SetExecutablesPath(ffmpegPath);
             if (!File.Exists(inputPath))
                 throw new FileNotFoundException("Arquivo de vídeo não encontrado", inputPath);
 

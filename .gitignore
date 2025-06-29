@@ -29,7 +29,6 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
-[Oo]ut/
 [Ll]og/
 [Ll]ogs/
 
@@ -91,9 +90,10 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+*.tlog
 *.vspscc
 *.vssscc
-.builds
+.buildsgit
 *.pidb
 *.svclog
 *.scc
@@ -165,6 +165,7 @@ AutoTest.Net/
 
 # Installshield output folder
 [Ee]xpress/
+GapRemovalApp/Output/
 
 # DocProject is a documentation generator add-in
 DocProject/buildhelp/
@@ -189,22 +190,8 @@ publish/
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
 # checkin your Azure Web App publish settings, but sensitive information contained
-# in these scripts will be unencrypted
-PublishScripts/
-
-# NuGet Packages
-*.nupkg
-# NuGet Symbol Packages
-*.snupkg
-# The packages folder can be ignored because of Package Restore
-**/[Pp]ackages/*
-# except build/, which is used as an MSBuild target.
-!**/[Pp]ackages/build/
-# Uncomment if necessary however generally it will be regenerated when needed
-#!**/[Pp]ackages/repositories.config
-# NuGet v3's project.json files produces more ignorable files
-*.nuget.props
-*.nuget.targets
+# in these files may be visible to others.
+*.azurePubxml
 
 # Microsoft Azure Build Output
 csx/
@@ -244,7 +231,7 @@ orleans.codegen.cs
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
 #*.snk
 
-# Since there are multiple workflows, uncomment next line to ignore bower_components
+# Since there are multiple workflows, uncomment the next line to ignore bower_components
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)
 #bower_components/
 
@@ -258,8 +245,7 @@ _UpgradeReport_Files/
 Backup*/
 UpgradeLog*.XML
 UpgradeLog*.htm
-ServiceFabricBackup/
-*.rptproj.bak
+CConversionReportFiles/
 
 # SQL Server files
 *.mdf
@@ -293,6 +279,17 @@ node_modules/
 
 # Visual Studio 6 auto-generated workspace file (contains which files were open etc.)
 *.vbw
+
+# Visual Studio 6 auto-generated project file (contains which files were open etc.)
+*.vbp
+
+# Visual Studio 6 workspace and project file (working project files containing files to include in project)
+*.dsw
+*.dsp
+
+# Visual Studio 6 technical files
+*.ncb
+*.aps
 
 # Visual Studio LightSwitch build output
 **/*.HTMLClient/GeneratedArtifacts
@@ -350,6 +347,9 @@ ASALocalRun/
 # Local History for Visual Studio
 .localhistory/
 
+# Visual Studio History (VSHistory) files
+.vshistory/
+
 # BeatPulse healthcheck temp database
 healthchecksdb
 
@@ -361,3 +361,226 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# VS Code files for those working on multiple tools
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
+
+# Windows Installer files from build outputs
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# JetBrains Rider
+*.sln.iml
+
+# Arquivos específicos do projeto GapRemoval
+# Instaladores e executáveis de saída (apenas temporários)
+Output/temp/
+GapRemovalApp/Output/temp/
+publish/
+*.msi
+*.msix
+*.cab
+
+# Binários FFmpeg (muito grandes para GitHub - serão baixados automaticamente)
+GapRemovalApp/ffmpeg/
+ffmpeg/
+
+# Binários VLC (muito grandes para GitHub - serão baixados automaticamente)
+GapRemovalApp/vlc/
+vlc/
+
+# Arquivos de log específicos
+logs/
+*.log
+
+# Arquivos temporários
+temp_parts/
+*.tmp
+*.temp
+
+# Arquivos de teste de áudio/vídeo temporários
+test_*.wav
+test_*.mp4
+test_*.avi
+temp_*.wav
+temp_*.mp4
+temp_*.avi
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Arquivos de configuração de usuário
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Arquivos de configuração do Visual Studio
+.vs/
+*.vcxproj.filters
+*.vcxproj.user
+
+# Arquivos de configuração do ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Arquivos de configuração do StyleCop
+StyleCopReport.xml
+
+# Arquivos de configuração do FxCop
+*.fxcop
+
+# Arquivos de configuração do Code Analysis
+*.lastcodeanalysissucceeded
+
+# Arquivos de configuração do Performance Profiler
+*.vsp
+*.vspx
+*.sap
+
+# Arquivos de configuração do IntelliTrace
+*.itrace
+
+# Arquivos de configuração do Test Impact Analysis
+*.testimpact
+
+# Arquivos de configuração do Code Coverage
+*.coverage
+*.coveragexml
+
+# Arquivos de configuração do NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Arquivos de configuração do MightyMoose
+*.mm.*
+AutoTest.Net/
+
+# Arquivos de configuração do Web Workbench
+.sass-cache/
+
+# Arquivos de configuração do DocProject
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Arquivos de configuração do Click-Once
+publish/
+
+# Arquivos de configuração do Publish Web Output
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+# Arquivos de configuração do Microsoft Azure
+*.azurePubxml
+csx/
+*.build.csdef
+ecf/
+rcf/
+
+# Arquivos de configuração do Windows Store
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+
+# Arquivos de configuração do Visual Studio LightSwitch
+**/*.HTMLClient/GeneratedArtifacts
+**/*.DesktopClient/GeneratedArtifacts
+**/*.DesktopClient/ModelManifest.xml
+**/*.Server/GeneratedArtifacts
+**/*.Server/ModelManifest.xml
+_Pvt_Extensions
+
+# Arquivos de configuração do Paket
+.paket/paket.exe
+paket-files/
+
+# Arquivos de configuração do FAKE
+.fake/
+
+# Arquivos de configuração do CodeRush
+.cr/personal
+
+# Arquivos de configuração do Python Tools
+__pycache__/
+*.pyc
+
+# Arquivos de configuração do Tabs Studio
+*.tss
+
+# Arquivos de configuração do Telerik JustMock
+*.jmconfig
+
+# Arquivos de configuração do BizTalk
+*.btp.cs
+*.btm.cs
+*.odx.cs
+*.xsd.cs
+
+# Arquivos de configuração do OpenCover
+OpenCover/
+
+# Arquivos de configuração do Azure Stream Analytics
+ASALocalRun/
+
+# Arquivos de configuração do MSBuild
+*.binlog
+
+# Arquivos de configuração do NVidia Nsight
+*.nvuser
+
+# Arquivos de configuração do MFractors
+.mfractor/
+
+# Arquivos de configuração do Local History
+.localhistory/
+.vshistory/
+
+# Arquivos de configuração do BeatPulse
+healthchecksdb
+
+# Arquivos de configuração do Migration Backup
+MigrationBackup/
+
+# Arquivos de configuração do Ionide
+.ionide/
+
+# Arquivos de configuração do Fody
+FodyWeavers.xsd
+
+# Arquivos de configuração do VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# Arquivos de configuração do JetBrains Rider
+*.sln.iml

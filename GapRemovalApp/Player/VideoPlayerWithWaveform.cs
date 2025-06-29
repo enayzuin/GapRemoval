@@ -50,12 +50,12 @@ namespace GapRemovalApp.Player
 
         private void MediaElement_MediaFailed(object sender, ExceptionRoutedEventArgs e)
         {
-            MessageBox.Show("❌ Erro ao carregar o vídeo: " + e.ErrorException.Message);
+            System.Windows.MessageBox.Show("❌ Erro ao carregar o vídeo: " + e.ErrorException.Message);
         }
 
         private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("✅ Evento MediaOpened disparado!");
+            System.Windows.MessageBox.Show("✅ Evento MediaOpened disparado!");
 
             if (mediaElement.NaturalDuration.HasTimeSpan)
             {
@@ -69,7 +69,7 @@ namespace GapRemovalApp.Player
             }
             else
             {
-                MessageBox.Show("⚠️ O vídeo foi carregado, mas não tem duração conhecida.");
+                System.Windows.MessageBox.Show("⚠️ O vídeo foi carregado, mas não tem duração conhecida.");
             }
         }
 
@@ -103,7 +103,7 @@ namespace GapRemovalApp.Player
                 Y1 = 0,
                 X2 = x,
                 Y2 = waveformCanvas.ActualHeight,
-                Stroke = Brushes.Red,
+                Stroke = System.Windows.Media.Brushes.Red,
                 StrokeThickness = 2
             };
 
@@ -119,7 +119,7 @@ namespace GapRemovalApp.Player
         {
             if (!System.IO.File.Exists(path))
             {
-                MessageBox.Show("❌ Arquivo não encontrado: " + path);
+                System.Windows.MessageBox.Show("❌ Arquivo não encontrado: " + path);
                 return;
             }
 
@@ -127,11 +127,11 @@ namespace GapRemovalApp.Player
             {
                 mediaElement.Source = new Uri(path);
                 mediaElement.Position = TimeSpan.Zero;
-                MessageBox.Show("🎬 Source definida: " + path);
+                System.Windows.MessageBox.Show("🎬 Source definida: " + path);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("❌ Falha ao definir Source do vídeo: " + ex.Message);
+                System.Windows.MessageBox.Show("❌ Falha ao definir Source do vídeo: " + ex.Message);
             }
         }
 
