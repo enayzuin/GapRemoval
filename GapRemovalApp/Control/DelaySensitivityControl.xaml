@@ -1,0 +1,77 @@
+﻿<UserControl x:Class="GapRemovalApp.DelaySensitivityControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="50" Width="420">
+    <UserControl.Resources>
+        <Style x:Key="FlatSliderStyle" TargetType="Slider">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Track x:Name="PART_Track"
+                                   VerticalAlignment="Center">
+                                <Track.Thumb>
+                                    <Thumb Width="14" Height="14"
+                                           Background="#888"
+                                           BorderBrush="#444"
+                                           BorderThickness="1">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse Fill="{TemplateBinding Background}"
+                                                         Stroke="{TemplateBinding BorderBrush}"
+                                                         StrokeThickness="{TemplateBinding BorderThickness}" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{x:Null}" IsEnabled="True"
+                  Background="#333"
+                  Height="3"
+                  BorderThickness="0"
+                  HorizontalAlignment="Stretch"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{x:Null}" IsEnabled="True"
+                  Background="#333"
+                  Height="3"
+                  BorderThickness="0"
+                  HorizontalAlignment="Stretch"/>
+                                </Track.IncreaseRepeatButton>
+
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Background="Transparent">
+        <TextBlock Text="Delay de Silêncio (ms):" 
+                   Margin="0,0,10,0" 
+                   VerticalAlignment="Center"
+                   Foreground="#DDD" 
+                   FontWeight="SemiBold" 
+                   FontSize="14"
+                   FontFamily="Segoe UI"/>
+
+        <Slider x:Name="DelaySlider"
+                Minimum="100" Maximum="2000" Value="700"
+                Width="160"
+                Style="{StaticResource FlatSliderStyle}"
+                ValueChanged="DelaySlider_ValueChanged"
+                VerticalAlignment="Center"
+                Background="Transparent"
+                Foreground="#AAA"/>
+
+        <TextBlock x:Name="DelayValueLabel" 
+                   Text="700 ms" 
+                   Margin="10,0,0,0" 
+                   VerticalAlignment="Center"
+                   Foreground="#DDD"
+                   FontWeight="SemiBold"
+                   FontSize="14"
+                   FontFamily="Segoe UI"/>
+    </StackPanel>
+</UserControl>

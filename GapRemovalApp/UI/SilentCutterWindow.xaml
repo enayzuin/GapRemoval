@@ -1,0 +1,138 @@
+﻿<Window x:Class="GapRemovalApp.UI.SilentCutterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        xmlns:wfhost="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        xmlns:local="clr-namespace:GapRemovalApp"
+        WindowStartupLocation="CenterScreen"
+        Title="Gap Removal - Removedor de Silêncios"
+        WindowState="Maximized"
+        WindowStyle="None" 
+        ResizeMode="CanResize" 
+        AllowsTransparency="False"
+        Background="#1E1E1E" 
+        Foreground="#EAEAEA" 
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <!-- Estilo de botão estilo macOS - Dark -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#3A3A3C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="10,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#5E5E62"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderBrush="#444" BorderThickness="1" CornerRadius="8" Background="#1E1E1E">
+        <DockPanel LastChildFill="True">
+
+            <!-- HEADER CUSTOMIZADO -->
+            <Grid Height="40" Background="#2C2C2E" DockPanel.Dock="Top" MouseDown="Header_MouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Gap Removal - Removedor de Silêncios"
+                           VerticalAlignment="Center"
+                           Margin="20,0,0,0"
+                           Foreground="White"
+                           FontSize="14"
+                           FontWeight="Bold"/>
+
+                <Button Content="X"
+                        Width="30"
+                        Height="30"
+                        Margin="0,5,5,5"
+                        Click="CloseButton_Click"
+                        Grid.Column="1"
+                        Background="#FF3B30"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontWeight="Bold"
+                        FontSize="12"
+                        Cursor="Hand"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- CONTEÚDO PRINCIPAL - Agora ocupa todo o espaço disponível -->
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- Sliders -->
+                    <RowDefinition Height="*"/>
+                    <!-- Player e Waveform - Agora ocupa todo o espaço disponível -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Botões -->
+                </Grid.RowDefinitions>
+
+                <!-- Sliders -->
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,10,0,10" HorizontalAlignment="Center"/>
+
+                <!-- Player Centralizado - Agora se expande para ocupar o espaço disponível -->
+                <StackPanel x:Name="VideoPanel" Grid.Row="1" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid x:Name="VideoContainer" MinHeight="400">
+                        <local:VlcPlayerControl x:Name="VlcPlayer" Visibility="Collapsed" Margin="0,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <Grid x:Name="VideoOverlayGrid"
+                              Visibility="Collapsed"
+                              Background="#CCFF0000"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              IsHitTestVisible="False"/>
+                    </Grid>
+                    <local:WaveformControl x:Name="WaveformControl" Height="150" MinWidth="800"/>
+                </StackPanel>
+                
+                <!-- Mensagem quando nenhum vídeo estiver carregado -->
+                <StackPanel x:Name="NoVideoMessage" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Visible"/>
+
+                <!-- Botões -->
+                <StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Center" Margin="0,15,0,10">
+                    <Button Content="Selecionar vídeo" Click="OpenVideo_Click" Width="200" Height="35" x:Name="OpenButton"/>
+                    <Button Content="Exportar vídeo" Click="ExportButton_Click" Width="200" Height="35" x:Name="ExportButton" Background="#FF007AFF"/>
+                </StackPanel>
+
+                <!-- Overlay de Loading -->
+                <Grid x:Name="LoadingOverlay" Visibility="Collapsed" Background="#80000000" Grid.RowSpan="3">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock x:Name="ExportStatusText" Text="Removendo gaps de silêncio..." 
+                   Foreground="White" FontSize="20" Margin="0,20"/>
+                        <ProgressBar x:Name="ExportProgressBar" Width="200" Height="20" Minimum="0" Maximum="100"/>
+                    </StackPanel>
+                </Grid>
+                
+                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="1">
+                    <TextBlock Text="📁" FontSize="80" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <TextBlock Text="Nenhum vídeo selecionado" 
+                   Foreground="#AAA" 
+                   FontSize="24" 
+                   FontWeight="SemiBold" 
+                   HorizontalAlignment="Center"/>
+                </StackPanel>
+                
+                <local:DelaySensitivityControl x:Name="DelaySensitivityControl" Grid.Row="0" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,20,0"/>
+                <local:AudioSensitivityControl x:Name="SensitivityControl" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20,10,0,0"/>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

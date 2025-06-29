@@ -4,7 +4,7 @@ using System.Windows.Controls;
 
 namespace GapRemovalApp
 {
-    public partial class AudioSensitivityControl : UserControl
+    public partial class AudioSensitivityControl : System.Windows.Controls.UserControl
     {
         public event Action<float>? SensitivityChanged;
 

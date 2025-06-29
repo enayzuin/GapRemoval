@@ -1,31 +1,64 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ApplicationIcon>gap_removal_icon.ico</ApplicationIcon>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="Utils\NovaPasta\**" />
-    <Compile Remove="Video\NovaPasta\**" />
-    <EmbeddedResource Remove="Utils\NovaPasta\**" />
-    <EmbeddedResource Remove="Video\NovaPasta\**" />
-    <None Remove="Utils\NovaPasta\**" />
-    <None Remove="Video\NovaPasta\**" />
-    <Page Remove="Utils\NovaPasta\**" />
-    <Page Remove="Video\NovaPasta\**" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="gap_removal_icon.ico">
+			<Pack>True</Pack>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="System.Text.Json" Version="9.0.0" />
-    <PackageReference Include="Xabe.FFmpeg" Version="6.0.1" />
-  </ItemGroup>
+		<ItemGroup>
+		<None Include="vlc\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
+	<ItemGroup>
+		<None Include="ffmpeg\**\*.*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="Utils\NovaPasta\**" />
+		<Compile Remove="Video\NovaPasta\**" />
+		<EmbeddedResource Remove="Utils\NovaPasta\**" />
+		<EmbeddedResource Remove="Video\NovaPasta\**" />
+		<None Remove="Utils\NovaPasta\**" />
+		<None Remove="Video\NovaPasta\**" />
+		<Page Remove="Utils\NovaPasta\**" />
+		<Page Remove="Video\NovaPasta\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="LibVLCSharp.WPF" Version="3.9.2" />
+		<PackageReference Include="MediaInfo.DotNetWrapper" Version="1.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+		<PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.3" />
+		<PackageReference Include="NAudio" Version="2.2.1" />
+		<PackageReference Include="Serilog" Version="4.2.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.1" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<PackageReference Include="System.Text.Json" Version="9.0.0" />
+		<PackageReference Include="VLC.DotNet.Forms" Version="3.1.0" />
+		<PackageReference Include="Xabe.FFmpeg" Version="6.0.1" />
+		<PackageReference Include="MediaInfo.DotNetWrapper" Version="21.03.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Control\DelaySensitivityControl.xaml.cs">
+			<SubType>Code</SubType>
+		</Compile>
+	</ItemGroup>
+	
 </Project>
