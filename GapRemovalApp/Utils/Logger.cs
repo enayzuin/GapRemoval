@@ -1,6 +1,7 @@
 ﻿using System;
 using Serilog;
 using System.IO;
+using System.Windows;
 
 namespace GapRemovalApp.Utils;
 
@@ -24,7 +25,13 @@ public static class Logger
 
     public static void Setup()
     {
-        var logFilePath = Path.Combine(Directory.GetCurrentDirectory(), "logs", "app.log");
+        var logDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "GapRemoval", "logs"
+        );
+        Directory.CreateDirectory(logDir);
+
+        var logFilePath = Path.Combine(logDir, "app.log");
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()

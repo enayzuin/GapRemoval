@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using GapRemovalApp.UI;
+using GapRemovalApp.Utils;
 
 namespace GapRemovalApp.UI
 {

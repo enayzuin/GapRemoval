@@ -9,6 +9,19 @@
 		<UseWPF>true</UseWPF>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ApplicationIcon>gap_removal_icon.ico</ApplicationIcon>
+		<AssemblyTitle>Gap Removal</AssemblyTitle>
+		<AssemblyDescription>Removedor de Silêncios de Vídeo</AssemblyDescription>
+		<AssemblyCompany>GapRemoval</AssemblyCompany>
+		<AssemblyProduct>Gap Removal</AssemblyProduct>
+		<AssemblyCopyright>Copyright © 2025</AssemblyCopyright>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<Version>1.0.0</Version>
+		<PublishSingleFile>false</PublishSingleFile>
+		<SelfContained>true</SelfContained>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<PublishReadyToRun>false</PublishReadyToRun>
+		<PublishTrimmed>false</PublishTrimmed>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -61,4 +74,42 @@
 		</Compile>
 	</ItemGroup>
 	
+	<!-- Targets para Build Profissional -->
+	<Target Name="BuildDistribution" DependsOnTargets="Publish;DownloadBinaries" AfterTargets="Build">
+		<Message Text="Iniciando build de distribuição..." Importance="high" />
+		
+		<!-- Verificar se Inno Setup está instalado -->
+		<PropertyGroup>
+			<InnoSetupPath>C:\Program Files (x86)\Inno Setup 6\ISCC.exe</InnoSetupPath>
+		</PropertyGroup>
+		
+		<Error Condition="!Exists('$(InnoSetupPath)')" 
+			   Text="Inno Setup 6 não encontrado. Instale de: https://jrsoftware.org/isdl.php" />
+		
+		<!-- Executar Inno Setup -->
+		<Exec Command="&quot;$(InnoSetupPath)&quot; &quot;$(MSBuildProjectDirectory)\GapRemoval.iss&quot;" 
+			  ContinueOnError="false" />
+		
+		<Message Text="Instalador gerado com sucesso em: $(MSBuildProjectDirectory)\Output\GapRemovalInstaller.exe" 
+				 Importance="high" />
+	</Target>
+
+	<!-- Target para Download de Binários -->
+	<Target Name="DownloadBinaries" Condition="!Exists('$(MSBuildProjectDirectory)\ffmpeg\ffmpeg.exe') Or !Exists('$(MSBuildProjectDirectory)\vlc\libvlc.dll')">
+		<Message Text="Binários não encontrados. Baixando automaticamente..." Importance="high" />
+		
+		<!-- Executar script PowerShell para download -->
+		<Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\download_binaries.ps1&quot;" 
+			  ContinueOnError="false" />
+		
+		<Message Text="Download de binários concluído." Importance="high" />
+	</Target>
+
+	<!-- Target para Clean Profissional -->
+	<Target Name="CleanDistribution" AfterTargets="Clean">
+		<RemoveDir Directories="$(MSBuildProjectDirectory)\Output" />
+		<RemoveDir Directories="$(MSBuildProjectDirectory)\publish" />
+		<Message Text="Limpeza de distribuição concluída." Importance="high" />
+	</Target>
+
 </Project>

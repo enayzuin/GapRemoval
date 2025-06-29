@@ -30,40 +30,48 @@ namespace GapRemovalApp.UI
 
         public SilentCutterWindow()
         {
-            InitializeComponent();
-            
-            // Garantir que a janela sempre inicie maximizada
-            WindowState = WindowState.Maximized;
-            
-            // Configurar para sempre maximizar ao abrir
-            StateChanged += (s, e) =>
+            try
             {
-                if (WindowState == WindowState.Normal)
+                InitializeComponent();
+                
+                // Garantir que a janela sempre inicie maximizada
+                WindowState = WindowState.Maximized;
+                
+                // Configurar para sempre maximizar ao abrir
+                StateChanged += (s, e) =>
                 {
-                    WindowState = WindowState.Maximized;
-                }
-            };
-            
-            SensitivityControl.SensitivityChanged += OnSensitivityChanged;
-            DelaySensitivityControl.DelayChanged += OnChangeMinSilenceMs;
+                    if (WindowState == WindowState.Normal)
+                    {
+                        WindowState = WindowState.Maximized;
+                    }
+                };
+                
+                SensitivityControl.SensitivityChanged += OnSensitivityChanged;
+                DelaySensitivityControl.DelayChanged += OnChangeMinSilenceMs;
 
-            Logger.Setup();
-            Log.Information("SilentCutterWindow inicializada.");
+                Logger.Setup();
+                Log.Information("SilentCutterWindow inicializada.");
 
-            // Sincronizar UI com o tempo centralizado
-            _timeCoordinator.TimeChanged += OnTimeChanged;
-            _timeCoordinator.DurationChanged += d => WaveformControl.SetDuration(d);
-            
-            // Ajustar tamanho dos controles quando a janela for redimensionada
-            SizeChanged += OnWindowSizeChanged;
-            
-            // Ajustar controles quando a janela for carregada
-            Loaded += OnWindowLoaded;
-            
-            // Inicializar variáveis locais com os valores dos controles
-            silenceThreshold = (int)SensitivityControl.CurrentValue;
-            minDelay = DelaySensitivityControl.CurrentDelay;
-            Log.Information("Valores iniciais - Sensibilidade: {Sensitivity} dB, Delay: {Delay} ms", silenceThreshold, minDelay);
+                // Sincronizar UI com o tempo centralizado
+                _timeCoordinator.TimeChanged += OnTimeChanged;
+                _timeCoordinator.DurationChanged += d => WaveformControl.SetDuration(d);
+                
+                // Ajustar tamanho dos controles quando a janela for redimensionada
+                SizeChanged += OnWindowSizeChanged;
+                
+                // Ajustar controles quando a janela for carregada
+                Loaded += OnWindowLoaded;
+                
+                // Inicializar variáveis locais com os valores dos controles
+                silenceThreshold = (int)SensitivityControl.CurrentValue;
+                minDelay = DelaySensitivityControl.CurrentDelay;
+                Log.Information("Valores iniciais - Sensibilidade: {Sensitivity} dB, Delay: {Delay} ms", silenceThreshold, minDelay);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Erro no construtor da SilentCutterWindow: {ex}");
+                MessageBox.Show("Erro crítico ao abrir o editor de vídeo. Veja o log para detalhes.");
+            }
         }
         
         private void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -100,133 +108,149 @@ namespace GapRemovalApp.UI
 
         private void SelectButton_Click(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            try
             {
-                Filter = "Vídeos (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv|Todos os Arquivos|*.*"
-            };
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Vídeos (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv|Todos os Arquivos|*.*"
+                };
 
-            if (openFileDialog.ShowDialog() == true)
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    videoPath = openFileDialog.FileName;
+                    Log.Information("Vídeo selecionado: {VideoPath}", videoPath);
+                }
+            }
+            catch (Exception ex)
             {
-                videoPath = openFileDialog.FileName;
-                Log.Information("Vídeo selecionado: {VideoPath}", videoPath);
+                Logger.Error($"Erro ao selecionar vídeo: {ex}");
+                MessageBox.Show("Erro ao selecionar vídeo. Veja o log para detalhes.");
             }
         }
 
         private async void OpenVideo_Click(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            try
             {
-                Filter = "Vídeos (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv|Todos os Arquivos|*.*"
-            };
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Vídeos (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv|Todos os Arquivos|*.*"
+                };
 
-            if (openFileDialog.ShowDialog() == true)
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    videoPath = openFileDialog.FileName;
+                    Log.Information("Abrindo vídeo: {VideoPath}", videoPath);
+
+                    try
+                    {
+                        // Mostrar painel de vídeo
+                        NoVideoMessage.Visibility = Visibility.Collapsed;
+                        VideoPanel.Visibility = Visibility.Visible;
+                        VlcPlayer.Visibility = Visibility.Visible;
+
+                        // Inicializar overlay
+                        VideoOverlayGrid.Visibility = Visibility.Collapsed;
+                        if (VideoContainer != null)
+                        {
+                            VideoOverlayGrid.Width = VideoContainer.Width;
+                            VideoOverlayGrid.Height = VideoContainer.Height;
+                        }
+
+                        // Carregar vídeo no player
+                        VlcPlayer.LoadVideo(videoPath);
+
+                        // Aguardar um pouco para o VLC carregar o vídeo
+                        await Task.Delay(1000);
+
+                        // Extrair áudio
+                        wavPath = await Audio.ExtrairWav(videoPath);
+                        Log.Information("WAV extraído: {WavPath}", wavPath);
+
+                        // Renderizar waveform com dados reais do áudio
+                        WaveformControl.RenderWaveform(wavPath);
+                        
+                        // Obter duração do vídeo e do WAV para comparação
+                        var videoDuration = VlcPlayer.GetDuration();
+                        var wavDuration = await GetDurationFromWav(wavPath);
+                        Log.Information($"Duração do vídeo: {videoDuration.TotalSeconds:F2}s | Duração do WAV: {wavDuration.TotalSeconds:F2}s");
+
+                        // Sempre usar a duração do vídeo para o SetDuration, só usar do WAV se for zero
+                        if (videoDuration.TotalSeconds > 0)
+                        {
+                            WaveformControl.SetDuration(videoDuration);
+                            _timeCoordinator.SetDuration(videoDuration);
+                        }
+                        else
+                        {
+                            WaveformControl.SetDuration(wavDuration);
+                            _timeCoordinator.SetDuration(wavDuration);
+                        }
+
+                        // Detectar silêncios usando os valores atuais dos controles
+                        var currentSensitivity = SensitivityControl.CurrentValue;
+                        var currentDelay = DelaySensitivityControl.CurrentDelay;
+                        var silentParts = Audio.DetectarSilencios(wavPath, (int)currentSensitivity, currentDelay);
+                        Log.Information("Silêncios detectados: {Count} (Sensibilidade: {Sensitivity} dB, Delay: {Delay} ms)", 
+                                       silentParts.Count, currentSensitivity, currentDelay);
+                        
+                        // Log detalhado dos silêncios detectados
+                        foreach (var (start, end) in silentParts)
+                        {
+                            Log.Debug($"[SILENCE] {start.TotalMilliseconds}ms - {end.TotalMilliseconds}ms (duração: {(end-start).TotalMilliseconds}ms)");
+                        }
+                        
+                        WaveformControl.DestacarSilencios(silentParts);
+                        _ultimosSilencios = silentParts;
+
+                        // Parar timer anterior se existir
+                        _syncTimer?.Stop();
+
+                        // Timer centralizado
+                        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+                        _syncTimer.Tick += (_, _) =>
+                        {
+                            try
+                            {
+                                var pos = VlcPlayer.GetPosition();
+                                Log.Debug($"[TIMER] Tick - pos: {pos.TotalMilliseconds} ms");
+                                _timeCoordinator.SetTime(pos);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, "Erro ao atualizar tempo centralizado");
+                            }
+                        };
+                        _syncTimer.Start();
+
+                        // Quando clicar no waveform, faz seek e atualiza tempo central
+                        WaveformControl.TimeSelected += (time) =>
+                        {
+                            try
+                            {
+                                VlcPlayer.Seek(time);
+                                _timeCoordinator.SetTime(time);
+                                Log.Information("Seek para: {Time}", time);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error(ex, "Erro ao fazer seek no vídeo");
+                            }
+                        };
+
+                        System.Windows.MessageBox.Show("Vídeo carregado com sucesso!", "Sucesso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Erro ao carregar vídeo");
+                        MessageBox.Show($"Erro ao carregar vídeo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
             {
-                videoPath = openFileDialog.FileName;
-                Log.Information("Abrindo vídeo: {VideoPath}", videoPath);
-
-                try
-                {
-                    // Mostrar painel de vídeo
-                    NoVideoMessage.Visibility = Visibility.Collapsed;
-                    VideoPanel.Visibility = Visibility.Visible;
-                    VlcPlayer.Visibility = Visibility.Visible;
-
-                    // Inicializar overlay
-                    VideoOverlayGrid.Visibility = Visibility.Collapsed;
-                    if (VideoContainer != null)
-                    {
-                        VideoOverlayGrid.Width = VideoContainer.Width;
-                        VideoOverlayGrid.Height = VideoContainer.Height;
-                    }
-
-                    // Carregar vídeo no player
-                    VlcPlayer.LoadVideo(videoPath);
-
-                    // Aguardar um pouco para o VLC carregar o vídeo
-                    await Task.Delay(1000);
-
-                    // Extrair áudio
-                    wavPath = await Audio.ExtrairWav(videoPath);
-                    Log.Information("WAV extraído: {WavPath}", wavPath);
-
-                    // Renderizar waveform com dados reais do áudio
-                    WaveformControl.RenderWaveform(wavPath);
-                    
-                    // Obter duração do vídeo e do WAV para comparação
-                    var videoDuration = VlcPlayer.GetDuration();
-                    var wavDuration = await GetDurationFromWav(wavPath);
-                    Log.Information($"Duração do vídeo: {videoDuration.TotalSeconds:F2}s | Duração do WAV: {wavDuration.TotalSeconds:F2}s");
-
-                    // Sempre usar a duração do vídeo para o SetDuration, só usar do WAV se for zero
-                    if (videoDuration.TotalSeconds > 0)
-                    {
-                        WaveformControl.SetDuration(videoDuration);
-                        _timeCoordinator.SetDuration(videoDuration);
-                    }
-                    else
-                    {
-                        WaveformControl.SetDuration(wavDuration);
-                        _timeCoordinator.SetDuration(wavDuration);
-                    }
-
-                    // Detectar silêncios usando os valores atuais dos controles
-                    var currentSensitivity = SensitivityControl.CurrentValue;
-                    var currentDelay = DelaySensitivityControl.CurrentDelay;
-                    var silentParts = Audio.DetectarSilencios(wavPath, (int)currentSensitivity, currentDelay);
-                    Log.Information("Silêncios detectados: {Count} (Sensibilidade: {Sensitivity} dB, Delay: {Delay} ms)", 
-                                   silentParts.Count, currentSensitivity, currentDelay);
-                    
-                    // Log detalhado dos silêncios detectados
-                    foreach (var (start, end) in silentParts)
-                    {
-                        Log.Debug($"[SILENCE] {start.TotalMilliseconds}ms - {end.TotalMilliseconds}ms (duração: {(end-start).TotalMilliseconds}ms)");
-                    }
-                    
-                    WaveformControl.DestacarSilencios(silentParts);
-                    _ultimosSilencios = silentParts;
-
-                    // Parar timer anterior se existir
-                    _syncTimer?.Stop();
-
-                    // Timer centralizado
-                    _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-                    _syncTimer.Tick += (_, _) =>
-                    {
-                        try
-                        {
-                            var pos = VlcPlayer.GetPosition();
-                            Log.Debug($"[TIMER] Tick - pos: {pos.TotalMilliseconds} ms");
-                            _timeCoordinator.SetTime(pos);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "Erro ao atualizar tempo centralizado");
-                        }
-                    };
-                    _syncTimer.Start();
-
-                    // Quando clicar no waveform, faz seek e atualiza tempo central
-                    WaveformControl.TimeSelected += (time) =>
-                    {
-                        try
-                        {
-                            VlcPlayer.Seek(time);
-                            _timeCoordinator.SetTime(time);
-                            Log.Information("Seek para: {Time}", time);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex, "Erro ao fazer seek no vídeo");
-                        }
-                    };
-
-                    System.Windows.MessageBox.Show("Vídeo carregado com sucesso!", "Sucesso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Erro ao carregar vídeo");
-                    MessageBox.Show($"Erro ao carregar vídeo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                Logger.Error($"Erro ao abrir vídeo: {ex}");
+                MessageBox.Show("Erro ao abrir vídeo. Veja o log para detalhes.");
             }
         }
 
@@ -305,29 +329,29 @@ namespace GapRemovalApp.UI
 
         private async void ExportButton_Click(object sender, RoutedEventArgs e)
         {
-            VlcPlayer.Pause();
-
-            if (string.IsNullOrEmpty(wavPath) || string.IsNullOrEmpty(videoPath))
-            {
-                MessageBox.Show("Por favor, selecione um vídeo primeiro!", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            LoadingOverlay.Visibility = Visibility.Visible;
-            VideoPanel.IsEnabled = false;
-            SensitivityControl.IsEnabled = false;
-            DelaySensitivityControl.IsEnabled = false;
-            WaveformControl.IsEnabled = false;
-            NoVideoMessage.IsEnabled = false;
-
-            ExportButton.Visibility = Visibility.Collapsed;
-            OpenButton.Visibility = Visibility.Collapsed;
-            VideoPanel.Visibility = Visibility.Collapsed;
-            SensitivityControl.Visibility = Visibility.Collapsed;
-            DelaySensitivityControl.Visibility = Visibility.Collapsed;
-
             try
             {
+                VlcPlayer.Pause();
+
+                if (string.IsNullOrEmpty(wavPath) || string.IsNullOrEmpty(videoPath))
+                {
+                    MessageBox.Show("Por favor, selecione um vídeo primeiro!", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                LoadingOverlay.Visibility = Visibility.Visible;
+                VideoPanel.IsEnabled = false;
+                SensitivityControl.IsEnabled = false;
+                DelaySensitivityControl.IsEnabled = false;
+                WaveformControl.IsEnabled = false;
+                NoVideoMessage.IsEnabled = false;
+
+                ExportButton.Visibility = Visibility.Collapsed;
+                OpenButton.Visibility = Visibility.Collapsed;
+                VideoPanel.Visibility = Visibility.Collapsed;
+                SensitivityControl.Visibility = Visibility.Collapsed;
+                DelaySensitivityControl.Visibility = Visibility.Collapsed;
+
                 var outputFileDialog = new Microsoft.Win32.SaveFileDialog
                 {
                     Filter = "Vídeos MP4 (*.mp4)|*.mp4|Todos os Arquivos (*.*)|*.*",
@@ -368,11 +392,12 @@ namespace GapRemovalApp.UI
                         Log.Warning("Exportação falhou. Nenhuma parte criada.");
                     }
                 }
+                Log.Debug("Exportação de vídeo iniciada.");
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Erro ao exportar vídeo");
-                MessageBox.Show($"Erro ao exportar vídeo: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+                Logger.Error($"Erro ao exportar vídeo: {ex}");
+                MessageBox.Show("Erro ao exportar vídeo. Veja o log para detalhes.");
             }
             finally
             {
